@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Script — YouTube 스크립트 추출기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–bg: #060608;
+–surface: #0e0e12;
+–border: #1e1e26;
+–accent: #d4f542;
+–accent2: #5b4dff;
+–text: #e8e8f0;
+–muted: #5a5a72;
+–error: #ff5b5b;
+}
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+min-height: 100vh;
+padding: 40px 20px;
+}
+
+/* Grain overlay */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
+pointer-events: none;
+z-index: 0;
+opacity: 0.6;
+}
+
+.container {
+max-width: 780px;
+margin: 0 auto;
+position: relative;
+z-index: 1;
+}
+
+/* Header */
+header {
+margin-bottom: 48px;
+}
+
+.logo-row {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-bottom: 10px;
+}
+
+.logo-badge {
+background: var(–accent);
+color: #000;
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+font-weight: 700;
+padding: 4px 9px;
+letter-spacing: 0.1em;
+border-radius: 2px;
+}
+
+.logo-line {
+flex: 1;
+height: 1px;
+background: var(–border);
+}
+
+h1 {
+font-size: clamp(36px, 7vw, 62px);
+font-weight: 800;
+line-height: 1.05;
+letter-spacing: -0.03em;
+}
+
+h1 span {
+color: var(–accent);
+}
+
+.subtitle {
+margin-top: 12px;
+color: var(–muted);
+font-size: 14px;
+font-family: ‘Space Mono’, monospace;
+letter-spacing: 0.04em;
+}
+
+/* Input section */
+.input-section {
+margin-bottom: 24px;
+}
+
+.url-wrap {
+display: flex;
+gap: 10px;
+align-items: stretch;
+margin-bottom: 12px;
+}
+
+.url-input {
+flex: 1;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+color: var(–text);
+font-family: ‘Space Mono’, monospace;
+font-size: 13px;
+padding: 14px 18px;
+outline: none;
+transition: border-color 0.2s;
+}
+
+.url-input::placeholder { color: var(–muted); }
+.url-input:focus { border-color: var(–accent); }
+
+.lang-select {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+font-size: 13px;
+padding: 0 14px;
+outline: none;
+cursor: pointer;
+transition: border-color 0.2s;
+min-width: 90px;
+}
+.lang-select:focus { border-color: var(–accent); }
+.lang-select option { background: #0e0e12; }
+
+.extract-btn {
+background: var(–accent);
+color: #000;
+border: none;
+border-radius: 6px;
+font-family: ‘Syne’, sans-serif;
+font-size: 14px;
+font-weight: 700;
+padding: 14px 28px;
+cursor: pointer;
+letter-spacing: 0.04em;
+transition: all 0.15s;
+white-space: nowrap;
+position: relative;
+overflow: hidden;
+}
+
+.extract-btn:hover { background: #c4e832; transform: translateY(-1px); }
+.extract-btn:active { transform: translateY(0); }
+.extract-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.hint {
+color: var(–muted);
+font-size: 11px;
+font-family: ‘Space Mono’, monospace;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.hint::before {
+content: ‘→’;
+color: var(–accent);
+}
+
+/* Status */
+.status-bar {
+display: none;
+align-items: center;
+gap: 10px;
+margin-bottom: 20px;
+padding: 12px 16px;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+color: var(–muted);
+}
+
+.status-bar.active { display: flex; }
+
+.spinner {
+width: 14px;
+height: 14px;
+border: 2px solid var(–border);
+border-top-color: var(–accent);
+border-radius: 50%;
+animation: spin 0.7s linear infinite;
+flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.status-dot {
+width: 8px;
+height: 8px;
+border-radius: 50%;
+flex-shrink: 0;
+}
+
+.status-dot.success { background: var(–accent); }
+.status-dot.error { background: var(–error); }
+
+/* Result section */
+.result-section {
+display: none;
+}
+
+.result-section.visible { display: block; }
+
+.result-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 14px;
+}
+
+.result-meta {
+font-size: 12px;
+font-family: ‘Space Mono’, monospace;
+color: var(–muted);
+}
+
+.result-meta strong {
+color: var(–accent);
+margin-right: 4px;
+}
+
+.action-btns {
+display: flex;
+gap: 8px;
+}
+
+.action-btn {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 4px;
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+font-size: 12px;
+font-weight: 600;
+padding: 7px 14px;
+cursor: pointer;
+transition: all 0.15s;
+letter-spacing: 0.03em;
+}
+
+.action-btn:hover { border-color: var(–accent); color: var(–accent); }
+
+.transcript-box {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 24px;
+font-family: ‘Space Mono’, monospace;
+font-size: 13px;
+line-height: 1.9;
+color: #c8c8dc;
+white-space: pre-wrap;
+word-break: break-word;
+max-height: 520px;
+overflow-y: auto;
+resize: vertical;
+scrollbar-width: thin;
+scrollbar-color: var(–border) transparent;
+}
+
+.transcript-box::-webkit-scrollbar { width: 6px; }
+.transcript-box::-webkit-scrollbar-track { background: transparent; }
+.transcript-box::-webkit-scrollbar-thumb { background: var(–border); border-radius: 3px; }
+
+/* Error */
+.error-box {
+display: none;
+background: #1a0a0a;
+border: 1px solid #3a1a1a;
+border-radius: 8px;
+padding: 20px 24px;
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+color: var(–error);
+line-height: 1.8;
+}
+
+.error-box.visible { display: block; }
+.error-box strong { display: block; margin-bottom: 8px; font-size: 13px; }
+
+/* Footer */
+footer {
+margin-top: 48px;
+padding-top: 24px;
+border-top: 1px solid var(–border);
+display: flex;
+justify-content: space-between;
+align-items: center;
+font-size: 11px;
+font-family: ‘Space Mono’, monospace;
+color: var(–muted);
+}
+
+.powered {
+display: flex;
+align-items: center;
+gap: 6px;
+}
+
+.powered span { color: var(–accent); }
+
+/* Copy feedback */
+.copied {
+color: var(–accent) !important;
+border-color: var(–accent) !important;
+}
+</style>
+
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-row">
+      <div class="logo-badge">YT SCRIPT</div>
+      <div class="logo-line"></div>
+      <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);">v1.0</span>
+    </div>
+    <h1>YouTube<br><span>스크립트</span> 추출기</h1>
+    <p class="subtitle">// URL 붙여넣기 → 텍스트 추출 → 복사</p>
+  </header>
+
+  <div class="input-section">
+    <div class="url-wrap">
+      <input
+        class="url-input"
+        type="text"
+        id="urlInput"
+        placeholder="https://www.youtube.com/watch?v=... 또는 youtu.be/..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <select class="lang-select" id="langSelect">
+        <option value="ko">한국어</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="zh">中文</option>
+      </select>
+      <button class="extract-btn" id="extractBtn" onclick="extractTranscript()">
+        추출하기
+      </button>
+    </div>
+    <p class="hint">자막이 있는 영상만 지원됩니다. 자동 생성 자막도 가능.</p>
+  </div>
+
+  <!-- Status -->
+
+  <div class="status-bar" id="statusBar">
+    <div class="spinner" id="statusSpinner"></div>
+    <span id="statusText">영상 정보를 가져오는 중...</span>
+  </div>
+
+  <!-- Error -->
+
+  <div class="error-box" id="errorBox">
+    <strong>⚠ 추출 실패</strong>
+    <span id="errorMsg"></span>
+  </div>
+
+  <!-- Result -->
+
+  <div class="result-section" id="resultSection">
+    <div class="result-header">
+      <div class="result-meta">
+        <strong id="wordCount">0</strong>단어 &nbsp;·&nbsp;
+        <strong id="charCount">0</strong>자
+      </div>
+      <div class="action-btns">
+        <button class="action-btn" id="copyBtn" onclick="copyText()">복사</button>
+        <button class="action-btn" onclick="downloadText()">다운로드</button>
+        <button class="action-btn" onclick="clearResult()">초기화</button>
+      </div>
+    </div>
+    <div class="transcript-box" id="transcriptBox"></div>
+  </div>
+
+  <footer>
+    <span>YouTube Transcript Extractor</span>
+    <div class="powered">corsproxy.io + <span>YouTube Timedtext API</span></div>
+  </footer>
+</div>
+
+<script>
+const PROXY = 'https://corsproxy.io/?';
+
+function extractVideoId(url) {
+  url = url.trim();
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function setStatus(text, icon = 'spinner') {
+  const bar = document.getElementById('statusBar');
+  bar.classList.add('active');
+  document.getElementById('statusText').textContent = text;
+
+  const spinner = document.getElementById('statusSpinner');
+  if (icon === 'spinner') {
+    spinner.className = 'spinner';
+    spinner.style.borderRadius = '50%';
+  } else if (icon === 'success') {
+    spinner.className = 'status-dot success';
+    spinner.style.animation = 'none';
+  } else if (icon === 'error') {
+    spinner.className = 'status-dot error';
+    spinner.style.animation = 'none';
+  }
+}
+
+function hideStatus() {
+  document.getElementById('statusBar').classList.remove('active');
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  document.getElementById('errorMsg').textContent = msg;
+  box.classList.add('visible');
+  setStatus('추출 실패', 'error');
+}
+
+function clearError() {
+  document.getElementById('errorBox').classList.remove('visible');
+}
+
+function clearResult() {
+  document.getElementById('resultSection').classList.remove('visible');
+  document.getElementById('transcriptBox').textContent = '';
+  clearError();
+  hideStatus();
+  document.getElementById('urlInput').value = '';
+}
+
+async function getPlayerData(videoId) {
+  setStatus('YouTube 페이지 로딩 중...');
+  const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const res = await fetch(PROXY + encodeURIComponent(ytUrl));
+  if (!res.ok) throw new Error('YouTube 페이지를 가져올 수 없습니다.');
+  const html = await res.text();
+
+  // Extract ytInitialPlayerResponse
+  const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*(?:;|<\/script>)/s);
+  if (!match) throw new Error('페이지에서 플레이어 데이터를 찾을 수 없습니다.');
+
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    throw new Error('플레이어 데이터 파싱 실패');
+  }
+}
+
+async function fetchCaptionTrack(trackUrl, lang) {
+  // Try json3 format first
+  const url = trackUrl + (trackUrl.includes('?') ? '&' : '?') + 'fmt=json3';
+  const res = await fetch(PROXY + encodeURIComponent(url));
+  if (!res.ok) throw new Error('자막 데이터를 가져올 수 없습니다.');
+  
+  const data = await res.json();
+  const events = data.events || [];
+  
+  let text = '';
+  for (const ev of events) {
+    if (!ev.segs) continue;
+    const line = ev.segs.map(s => s.utf8 || '').join('').trim();
+    if (line && line !== '\n') text += line + ' ';
+  }
+  return text.trim();
+}
+
+async function fetchCaptionXml(trackUrl) {
+  const res = await fetch(PROXY + encodeURIComponent(trackUrl));
+  if (!res.ok) throw new Error('자막 XML을 가져올 수 없습니다.');
+  const xml = await res.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const texts = [...doc.querySelectorAll('text')].map(t => t.textContent.trim()).filter(Boolean);
+  return texts.join(' ');
+}
+
+function decodeHtml(str) {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#\d+;/g, m => String.fromCharCode(parseInt(m.slice(2, -1))))
+    .replace(/<[^>]+>/g, '');
+}
+
+async function extractTranscript() {
+  const url = document.getElementById('urlInput').value.trim();
+  const lang = document.getElementById('langSelect').value;
+
+  if (!url) {
+    showError('YouTube URL을 입력해주세요.');
+    return;
+  }
+
+  const videoId = extractVideoId(url);
+  if (!videoId) {
+    showError('유효한 YouTube URL이 아닙니다.');
+    return;
+  }
+
+  const btn = document.getElementById('extractBtn');
+  btn.disabled = true;
+  clearError();
+  document.getElementById('resultSection').classList.remove('visible');
+
+  try {
+    const playerData = await getPlayerData(videoId);
+    
+    const captionRenderer = playerData?.captions?.playerCaptionsTracklistRenderer;
+    if (!captionRenderer || !captionRenderer.captionTracks?.length) {
+      throw new Error('이 영상에는 자막이 없습니다.\n자막이 활성화된 영상을 시도해보세요.');
+    }
+
+    const tracks = captionRenderer.captionTracks;
+    
+    // Try to find requested language
+    let track = tracks.find(t => t.languageCode === lang)
+      || tracks.find(t => t.languageCode?.startsWith(lang))
+      || tracks.find(t => t.kind === 'asr') // auto-generated
+      || tracks[0];
+
+    setStatus(`[${track.name?.simpleText || track.languageCode}] 자막 데이터 로딩 중...`);
+
+    let transcript;
+    try {
+      transcript = await fetchCaptionTrack(track.baseUrl, lang);
+    } catch {
+      transcript = await fetchCaptionXml(track.baseUrl);
+    }
+
+    transcript = decodeHtml(transcript);
+
+    if (!transcript || transcript.length < 10) {
+      throw new Error('자막 텍스트를 추출할 수 없었습니다.');
+    }
+
+    // Show result
+    const words = transcript.split(/\s+/).filter(Boolean).length;
+    document.getElementById('wordCount').textContent = words.toLocaleString();
+    document.getElementById('charCount').textContent = transcript.length.toLocaleString();
+    document.getElementById('transcriptBox').textContent = transcript;
+    document.getElementById('resultSection').classList.add('visible');
+
+    // Get video title if available
+    const title = playerData?.videoDetails?.title;
+    setStatus(`완료: ${title ? '"' + title + '"' : videoId}`, 'success');
+
+  } catch (err) {
+    showError(err.message || '알 수 없는 오류가 발생했습니다.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function copyText() {
+  const text = document.getElementById('transcriptBox').textContent;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 복사됨';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '복사';
+      btn.classList.remove('copied');
+    }, 2000);
+  } catch {
+    alert('클립보드 복사 실패. 텍스트를 직접 선택해 복사해주세요.');
+  }
+}
+
+function downloadText() {
+  const text = document.getElementById('transcriptBox').textContent;
+  if (!text) return;
+  const videoId = extractVideoId(document.getElementById('urlInput').value) || 'transcript';
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `transcript_${videoId}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') extractTranscript();
+  });
+});
+</script>
+
+</body>
+</html>
