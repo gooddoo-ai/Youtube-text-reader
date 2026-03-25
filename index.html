@@ -1,412 +1,321 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YouTube 스크립트 추출기</title>
-  <style>
-    :root {
-      --bg: #0b1020;
-      --card: #121936;
-      --card-2: #1a2348;
-      --text: #e8ecff;
-      --muted: #aab4df;
-      --line: #2a376f;
-      --accent: #7aa2ff;
-      --accent-2: #99b7ff;
-      --danger: #ff7a90;
-      --ok: #73d29c;
-      --shadow: 0 16px 40px rgba(0,0,0,.28);
-      --radius: 18px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Script — YouTube 스크립트 추출기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #060608; --surface: #0e0e12; --border: #1e1e26;
+    --accent: #d4f542; --text: #e8e8f0; --muted: #5a5a72; --error: #ff5b5b;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 40px 20px; }
+  .container { max-width: 800px; margin: 0 auto; }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(122,162,255,.16), transparent 28%),
-        linear-gradient(180deg, #09101d, #0b1020 30%, #0a1022 100%);
-      color: var(--text);
-      min-height: 100vh;
-    }
+header { margin-bottom: 44px; }
+.logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.logo-badge { background: #d4f542; color: #000; font-family: ‘Space Mono’, monospace; font-size: 11px; font-weight: 700; padding: 4px 9px; letter-spacing: .1em; border-radius: 2px; }
+.logo-line { flex: 1; height: 1px; background: #1e1e26; }
+h1 { font-size: clamp(34px, 6vw, 58px); font-weight: 800; line-height: 1.05; letter-spacing: -.03em; }
+h1 span { color: #d4f542; }
+.subtitle { margin-top: 10px; color: #5a5a72; font-size: 13px; font-family: ‘Space Mono’, monospace; }
 
-    .wrap {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 32px 20px 64px;
-    }
+.section-label { font-size: 11px; font-family: ‘Space Mono’, monospace; color: #5a5a72; margin-bottom: 6px; letter-spacing: .06em; text-transform: uppercase; }
+.section-label span { color: #d4f542; }
 
-    .hero {
-      margin-bottom: 20px;
-    }
+.api-row { display: flex; gap: 8px; margin-bottom: 6px; }
+.api-input { flex: 1; background: #0e0e12; border: 1px solid #1e1e26; border-radius: 6px; color: #e8e8f0; font-family: ‘Space Mono’, monospace; font-size: 12px; padding: 11px 16px; outline: none; transition: border-color .2s; }
+.api-input::placeholder { color: #3a3a50; }
+.api-input:focus { border-color: #d4f542; }
+.save-btn { background: #1e1e26; border: 1px solid #2a2a3a; border-radius: 6px; color: #e8e8f0; font-family: ‘Syne’, sans-serif; font-size: 12px; font-weight: 600; padding: 0 18px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.save-btn:hover { border-color: #d4f542; color: #d4f542; }
+.key-ok { font-size: 11px; font-family: ‘Space Mono’, monospace; color: #d4f542; display: none; }
+.key-ok.on { display: block; }
 
-    h1 {
-      margin: 0 0 10px;
-      font-size: clamp(28px, 5vw, 44px);
-      line-height: 1.1;
-      letter-spacing: -0.03em;
-    }
+.divider { height: 1px; background: #1e1e26; margin: 24px 0; }
 
-    .sub {
-      margin: 0;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.65;
-    }
+.url-wrap { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.url-input { flex: 1; min-width: 200px; background: #0e0e12; border: 1px solid #1e1e26; border-radius: 6px; color: #e8e8f0; font-family: ‘Space Mono’, monospace; font-size: 13px; padding: 14px 18px; outline: none; transition: border-color .2s; }
+.url-input::placeholder { color: #5a5a72; }
+.url-input:focus { border-color: #d4f542; }
+.lang-select { background: #0e0e12; border: 1px solid #1e1e26; border-radius: 6px; color: #e8e8f0; font-family: ‘Syne’, sans-serif; font-size: 13px; padding: 0 14px; outline: none; cursor: pointer; min-width: 86px; }
+.lang-select option { background: #0e0e12; }
+.extract-btn { background: #d4f542; color: #000; border: none; border-radius: 6px; font-family: ‘Syne’, sans-serif; font-size: 14px; font-weight: 700; padding: 14px 26px; cursor: pointer; letter-spacing: .04em; transition: all .15s; white-space: nowrap; }
+.extract-btn:hover { background: #c4e832; transform: translateY(-1px); }
+.extract-btn:active { transform: translateY(0); }
+.extract-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.hint { color: #5a5a72; font-size: 11px; font-family: ‘Space Mono’, monospace; }
+.hint::before { content: ’→ ’; color: #d4f542; }
 
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)), var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
+.status-bar { display: none; align-items: center; gap: 10px; margin: 14px 0; padding: 12px 16px; background: #0e0e12; border: 1px solid #1e1e26; border-radius: 6px; font-family: ‘Space Mono’, monospace; font-size: 12px; color: #5a5a72; }
+.status-bar.on { display: flex; }
+.spinner { width: 14px; height: 14px; border: 2px solid #1e1e26; border-top-color: #d4f542; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+.dot-ok  { width: 8px; height: 8px; border-radius: 50%; background: #d4f542; flex-shrink: 0; }
+.dot-err { width: 8px; height: 8px; border-radius: 50%; background: #ff5b5b; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-    .controls {
-      padding: 18px;
-      display: grid;
-      gap: 12px;
-      margin-top: 20px;
-    }
+.error-box { display: none; background: #1a0808; border: 1px solid #3a1010; border-radius: 8px; padding: 18px 22px; font-family: ‘Space Mono’, monospace; font-size: 12px; color: #ff5b5b; line-height: 1.9; margin-bottom: 14px; }
+.error-box.on { display: block; }
+.error-box strong { display: block; margin-bottom: 6px; font-size: 13px; }
 
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+.result-section { display: none; }
+.result-section.on { display: block; }
+.result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+.result-meta { font-size: 12px; font-family: ‘Space Mono’, monospace; color: #5a5a72; }
+.result-meta strong { color: #d4f542; }
+.action-btns { display: flex; gap: 8px; }
+.action-btn { background: #0e0e12; border: 1px solid #1e1e26; border-radius: 4px; color: #e8e8f0; font-family: ‘Syne’, sans-serif; font-size: 12px; font-weight: 600; padding: 7px 14px; cursor: pointer; transition: all .15s; }
+.action-btn:hover { border-color: #d4f542; color: #d4f542; }
+.copied { color: #d4f542 !important; border-color: #d4f542 !important; }
+.transcript-box { background: #0e0e12; border: 1px solid #1e1e26; border-radius: 8px; padding: 22px; font-family: ‘Space Mono’, monospace; font-size: 13px; line-height: 1.9; color: #c8c8dc; white-space: pre-wrap; word-break: break-word; max-height: 520px; overflow-y: auto; resize: vertical; scrollbar-width: thin; scrollbar-color: #1e1e26 transparent; }
+.transcript-box::-webkit-scrollbar { width: 5px; }
+.transcript-box::-webkit-scrollbar-thumb { background: #1e1e26; border-radius: 3px; }
 
-    input[type="url"], textarea, select {
-      width: 100%;
-      background: var(--card-2);
-      color: var(--text);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px 14px;
-      outline: none;
-      font-size: 15px;
-    }
+footer { margin-top: 44px; padding-top: 20px; border-top: 1px solid #1e1e26; display: flex; justify-content: space-between; font-size: 11px; font-family: ‘Space Mono’, monospace; color: #5a5a72; }
+footer span { color: #d4f542; }
+</style>
 
-    input[type="url"]:focus, textarea:focus, select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(122, 162, 255, .12);
-    }
-
-    .btn {
-      appearance: none;
-      border: 0;
-      border-radius: 14px;
-      padding: 12px 16px;
-      background: var(--accent);
-      color: #071229;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform .15s ease, opacity .15s ease, background .15s ease;
-    }
-
-    .btn:hover { transform: translateY(-1px); }
-    .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-
-    .btn.secondary {
-      background: #22305f;
-      color: var(--text);
-      border: 1px solid var(--line);
-    }
-
-    .btn.ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--line);
-    }
-
-    .meta {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 16px;
-    }
-
-    .meta .box {
-      background: rgba(255,255,255,.02);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-    }
-
-    .label {
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 6px;
-    }
-
-    .value {
-      font-size: 14px;
-      word-break: break-all;
-    }
-
-    .status {
-      margin-top: 12px;
-      font-size: 14px;
-      color: var(--muted);
-      min-height: 1.4em;
-    }
-
-    .status.ok { color: var(--ok); }
-    .status.error { color: var(--danger); }
-
-    .output {
-      padding: 18px;
-      margin-top: 18px;
-    }
-
-    textarea {
-      min-height: 380px;
-      resize: vertical;
-      line-height: 1.6;
-    }
-
-    .footer {
-      margin-top: 18px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    code.inline {
-      background: rgba(255,255,255,.06);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 2px 7px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      color: var(--accent-2);
-    }
-
-    @media (max-width: 720px) {
-      .meta { grid-template-columns: 1fr; }
-      .row > * { flex: 1 1 100%; }
-    }
-  </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="hero">
-      <h1>YouTube 스크립트 추출기</h1>
-      <p class="sub">
-        유튜브 링크를 넣으면 스크립트를 불러와서 복사하거나 TXT로 저장할 수 있습니다.<br>
-        이 페이지는 <strong>프론트엔드</strong>이고, 실제 스크립트 조회는 본인이 만든 API를 호출하도록 되어 있습니다.
-      </p>
-    </section>
+<div class="container">
 
-    <section class="card controls">
-      <label for="youtubeUrl">YouTube 링크</label>
-      <input id="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+  <header>
+    <div class="logo-row">
+      <div class="logo-badge">YT SCRIPT</div>
+      <div class="logo-line"></div>
+      <span style="font-family:'Space Mono',monospace;font-size:11px;color:#5a5a72;">v3.1 · OpenAI Powered</span>
+    </div>
+    <h1>YouTube<br><span>스크립트</span> 추출기</h1>
+    <p class="subtitle">// GPT-4o 웹 검색으로 자막을 직접 가져옵니다</p>
+  </header>
 
-      <div class="row">
-        <div style="flex:1 1 240px;">
-          <label for="lang" style="display:block;margin-bottom:8px;">언어</label>
-          <select id="lang">
-            <option value="ko">한국어</option>
-            <option value="en">영어</option>
-            <option value="ja">일본어</option>
-            <option value="auto">자동</option>
-          </select>
-        </div>
-      </div>
+  <!-- API Key -->
 
-      <div class="row">
-        <button class="btn" id="fetchBtn">스크립트 가져오기</button>
-        <button class="btn secondary" id="copyBtn">복사</button>
-        <button class="btn secondary" id="downloadBtn">TXT 다운로드</button>
-        <button class="btn ghost" id="clearBtn">비우기</button>
-      </div>
-
-      <div id="status" class="status"></div>
-
-      <div class="meta">
-        <div class="box">
-          <div class="label">Video ID</div>
-          <div class="value" id="videoIdValue">-</div>
-        </div>
-        <div class="box">
-          <div class="label">제목</div>
-          <div class="value" id="titleValue">-</div>
-        </div>
-        <div class="box">
-          <div class="label">문자 수</div>
-          <div class="value" id="charCountValue">0</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card output">
-      <label for="output" style="display:block;margin-bottom:8px;">스크립트</label>
-      <textarea id="output" placeholder="여기에 추출된 스크립트가 표시됩니다."></textarea>
-      <div class="footer">
-        기본 설정은 <span class="inline"><code class="inline">/api/transcript?videoId=...&lang=...</code></span> 로 요청합니다.<br>
-        GitHub Pages에 올릴 경우, 같은 저장소에서 서버 코드는 동작하지 않으니 Vercel / Netlify / Cloudflare Workers 같은 별도 백엔드나 서버리스 함수에 연결해야 합니다.
-      </div>
-    </section>
+  <div style="margin-bottom:0">
+    <div class="section-label">OpenAI API Key <span>*필수</span></div>
+    <div class="api-row">
+      <input class="api-input" type="password" id="apiKeyInput"
+        placeholder="sk-proj-..." autocomplete="off" spellcheck="false"/>
+      <button class="save-btn" onclick="saveKey()">저장</button>
+    </div>
+    <div class="key-ok" id="keyOk">✓ API 키 저장됨 (세션 내 유효)</div>
   </div>
 
-  <script>
-    const youtubeUrlInput = document.getElementById('youtubeUrl');
-    const langSelect = document.getElementById('lang');
-    const fetchBtn = document.getElementById('fetchBtn');
-    const copyBtn = document.getElementById('copyBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const output = document.getElementById('output');
-    const statusEl = document.getElementById('status');
-    const videoIdValue = document.getElementById('videoIdValue');
-    const titleValue = document.getElementById('titleValue');
-    const charCountValue = document.getElementById('charCountValue');
+  <div class="divider"></div>
 
-    // GitHub Pages에서 쓰려면 여기를 본인 API 주소로 바꾸세요.
-    // 예: const API_BASE = 'https://your-worker.example.workers.dev';
-    const API_BASE = 'https://tiny-night-c149.gooddoo84.workers.dev';
+  <!-- URL + Extract -->
 
-    function setStatus(message = '', type = '') {
-      statusEl.textContent = message;
-      statusEl.className = `status ${type}`.trim();
-    }
+  <div style="margin-bottom:24px">
+    <div class="section-label">YouTube URL</div>
+    <div class="url-wrap">
+      <input class="url-input" type="text" id="urlInput"
+        placeholder="https://youtu.be/... 또는 youtube.com/watch?v=..."
+        autocomplete="off" spellcheck="false"/>
+      <select class="lang-select" id="langSelect">
+        <option value="ko">한국어</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="zh">中文</option>
+      </select>
+      <button class="extract-btn" id="extractBtn" onclick="run()">추출하기</button>
+    </div>
+    <p class="hint">자막(자동 생성 포함) 지원 · 약 20~40초 소요</p>
+  </div>
 
-    function updateCharCount() {
-      charCountValue.textContent = output.value.length.toLocaleString('ko-KR');
-    }
+  <div class="status-bar" id="statusBar">
+    <div class="spinner" id="statusIcon"></div>
+    <span id="statusText"></span>
+  </div>
 
-    function extractVideoId(url) {
-      try {
-        const u = new URL(url);
-        if (u.hostname.includes('youtu.be')) {
-          return u.pathname.replace('/', '').trim();
-        }
-        if (u.hostname.includes('youtube.com')) {
-          const fromQuery = u.searchParams.get('v');
-          if (fromQuery) return fromQuery.trim();
-          const parts = u.pathname.split('/').filter(Boolean);
-          const shortsIndex = parts.indexOf('shorts');
-          if (shortsIndex !== -1 && parts[shortsIndex + 1]) return parts[shortsIndex + 1];
-          const liveIndex = parts.indexOf('live');
-          if (liveIndex !== -1 && parts[liveIndex + 1]) return parts[liveIndex + 1];
-        }
-        return '';
-      } catch {
-        return '';
-      }
-    }
+  <div class="error-box" id="errorBox">
+    <strong>⚠ 오류</strong>
+    <span id="errorMsg"></span>
+  </div>
 
-    function sanitizeFilename(name) {
-      return (name || 'youtube-transcript')
-        .replace(/[\\/:*?"<>|]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
+  <div class="result-section" id="resultSection">
+    <div class="result-header">
+      <div class="result-meta">
+        <strong id="wordCount">0</strong>단어 &nbsp;·&nbsp;
+        <strong id="charCount">0</strong>자
+      </div>
+      <div class="action-btns">
+        <button class="action-btn" id="copyBtn" onclick="copyText()">복사</button>
+        <button class="action-btn" onclick="downloadText()">다운로드</button>
+        <button class="action-btn" onclick="resetUI()">초기화</button>
+      </div>
+    </div>
+    <div class="transcript-box" id="transcriptBox"></div>
+  </div>
 
-    function downloadTextFile(text, filename) {
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
+  <footer>
+    <span>gpt-4o-search-preview</span>
+    <span>gooddoo-ai</span>
+  </footer>
+</div>
 
-    async function fetchTranscript(videoId, lang) {
-      const url = `${API_BASE}/api/transcript?videoId=${encodeURIComponent(videoId)}&lang=${encodeURIComponent(lang)}`;
-      const res = await fetch(url, { method: 'GET' });
-      if (!res.ok) {
-        let message = `요청 실패 (${res.status})`;
-        try {
-          const data = await res.json();
-          if (data?.error) message = data.error;
-        } catch {}
-        throw new Error(message);
-      }
-      return res.json();
-    }
+<script>
+let apiKey = '';
 
-    fetchBtn.addEventListener('click', async () => {
-      const url = youtubeUrlInput.value.trim();
-      const lang = langSelect.value;
-      const videoId = extractVideoId(url);
+function saveKey() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if (!k.startsWith('sk-')) { alert('올바른 OpenAI API 키를 입력해주세요. (sk- 로 시작)'); return; }
+  apiKey = k;
+  document.getElementById('keyOk').classList.add('on');
+}
 
-      if (!url) {
-        setStatus('유튜브 링크를 입력해 주세요.', 'error');
-        youtubeUrlInput.focus();
-        return;
-      }
+function getId(url) {
+  const m = url.trim().match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
+  return null;
+}
 
-      if (!videoId) {
-        setStatus('유효한 YouTube 링크에서 videoId를 찾지 못했습니다.', 'error');
-        return;
-      }
+function st(msg, type = 'spin') {
+  document.getElementById('statusBar').classList.add('on');
+  document.getElementById('statusText').textContent = msg;
+  document.getElementById('statusIcon').className =
+    type === 'ok' ? 'dot-ok' : type === 'err' ? 'dot-err' : 'spinner';
+}
 
-      fetchBtn.disabled = true;
-      setStatus('스크립트를 불러오는 중입니다...', '');
-      videoIdValue.textContent = videoId;
-      titleValue.textContent = '-';
+function showErr(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorBox').classList.add('on');
+  st('실패', 'err');
+}
 
-      try {
-        const data = await fetchTranscript(videoId, lang);
-        const title = data.title || '제목 없음';
-        const transcript = Array.isArray(data.segments)
-          ? data.segments.map(s => s.text).join('\n')
-          : (data.transcript || '');
+function resetUI() {
+  ['resultSection','errorBox'].forEach(id => document.getElementById(id).classList.remove('on'));
+  document.getElementById('statusBar').classList.remove('on');
+  document.getElementById('transcriptBox').textContent = '';
+  document.getElementById('urlInput').value = '';
+}
 
-        output.value = transcript.trim();
-        titleValue.textContent = title;
-        updateCharCount();
+async function run() {
+  const urlVal = document.getElementById('urlInput').value.trim();
+  const lang   = document.getElementById('langSelect').value;
+  const key    = apiKey || document.getElementById('apiKeyInput').value.trim();
 
-        if (!output.value) {
-          setStatus('스크립트를 찾았지만 본문이 비어 있습니다.', 'error');
-        } else {
-          setStatus('스크립트를 성공적으로 불러왔습니다.', 'ok');
-        }
-      } catch (err) {
-        console.error(err);
-        setStatus(err.message || '스크립트를 가져오지 못했습니다.', 'error');
-      } finally {
-        fetchBtn.disabled = false;
-      }
+  if (!key || !key.startsWith('sk-')) { showErr('OpenAI API 키를 먼저 입력하고 저장해주세요.'); return; }
+  if (!urlVal) { showErr('YouTube URL을 입력해주세요.'); return; }
+  const videoId = getId(urlVal);
+  if (!videoId) { showErr('유효한 YouTube URL이 아닙니다.'); return; }
+
+  const btn = document.getElementById('extractBtn');
+  btn.disabled = true;
+  document.getElementById('errorBox').classList.remove('on');
+  document.getElementById('resultSection').classList.remove('on');
+  st('GPT-4o에 연결 중...');
+
+  const langMap = { ko: '한국어', en: 'English', ja: '日本語', zh: '中文' };
+  const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+  const systemPrompt = `You are a YouTube transcript extraction specialist.
+Your ONLY job is to output the raw transcript text of a YouTube video.
+Rules:
+- Output ONLY the transcript/subtitle text. Nothing else.
+- No introduction, no explanation, no commentary.
+- Remove timestamps and speaker labels.
+- Keep sentences separated by newlines.
+- If transcript cannot be found, output exactly: TRANSCRIPT_NOT_FOUND`;
+
+  const userPrompt = `Extract the full transcript of this YouTube video.
+URL: ${ytUrl}
+Video ID: ${videoId}
+Preferred language: ${langMap[lang] || lang}
+
+Search for the transcript using web search. Try queries like:
+- "${videoId} transcript"
+- "${videoId} youtube subtitles"
+- site:youtubetranscript.com ${videoId}
+
+Output the transcript text only.`;
+
+  try {
+    st('GPT-4o가 자막 검색 중... (20~40초 소요)');
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-search-preview',
+        web_search_options: {},
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt },
+        ],
+        max_tokens: 8000,
+      }),
     });
 
-    copyBtn.addEventListener('click', async () => {
-      const text = output.value.trim();
-      if (!text) {
-        setStatus('복사할 스크립트가 없습니다.', 'error');
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(text);
-        setStatus('클립보드에 복사했습니다.', 'ok');
-      } catch {
-        output.select();
-        document.execCommand('copy');
-        setStatus('클립보드에 복사했습니다.', 'ok');
-      }
-    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API 오류 ${res.status}`);
+    }
 
-    downloadBtn.addEventListener('click', () => {
-      const text = output.value.trim();
-      if (!text) {
-        setStatus('다운로드할 스크립트가 없습니다.', 'error');
-        return;
-      }
-      const title = sanitizeFilename(titleValue.textContent);
-      downloadTextFile(text, `${title || 'youtube-transcript'}.txt`);
-      setStatus('TXT 파일 다운로드를 시작했습니다.', 'ok');
-    });
+    const data = await res.json();
+    let text = (data.choices?.[0]?.message?.content || '').trim();
 
-    clearBtn.addEventListener('click', () => {
-      youtubeUrlInput.value = '';
-      output.value = '';
-      titleValue.textContent = '-';
-      videoIdValue.textContent = '-';
-      updateCharCount();
-      setStatus('초기화했습니다.', '');
-    });
+    if (!text || text === 'TRANSCRIPT_NOT_FOUND') {
+      throw new Error('자막을 찾지 못했습니다.\n이 영상에 자막이 없거나, 검색 결과에서 자막을 가져올 수 없었습니다.');
+    }
 
-    output.addEventListener('input', updateCharCount);
-    updateCharCount();
-  </script>
+    // Light cleanup: remove any leading meta lines
+    text = text
+      .replace(/^(here is|here's|the transcript|transcript of|자막|스크립트)[^\n]*\n/gim, '')
+      .replace(/TRANSCRIPT_NOT_FOUND/g, '')
+      .trim();
+
+    if (text.length < 30) {
+      throw new Error('추출된 텍스트가 너무 짧습니다. 다시 시도해보세요.');
+    }
+
+    const words = text.split(/\s+/).filter(Boolean).length;
+    document.getElementById('wordCount').textContent = words.toLocaleString();
+    document.getElementById('charCount').textContent = text.length.toLocaleString();
+    document.getElementById('transcriptBox').textContent = text;
+    document.getElementById('resultSection').classList.add('on');
+    st(`완료 — ${words.toLocaleString()}단어`, 'ok');
+
+  } catch (e) {
+    showErr(e.message || '알 수 없는 오류가 발생했습니다.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function copyText() {
+  const text = document.getElementById('transcriptBox').textContent;
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); } catch {}
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '✓ 복사됨'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 2000);
+}
+
+function downloadText() {
+  const text = document.getElementById('transcriptBox').textContent;
+  if (!text) return;
+  const id = getId(document.getElementById('urlInput').value) || 'transcript';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  a.download = `transcript_${id}.txt`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') run();
+});
+document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveKey();
+});
+</script>
+
 </body>
 </html>
